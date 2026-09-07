@@ -1,0 +1,12 @@
+modLoader="javafml"
+loaderVersion="[2,4)"
+license="GPL-3.0"
+issueTrackerURL="https://github.com/INORACLE/RaLP/issues"
+
+[[mods]]
+modId="ralp"
+version="0.0.1"
+displayName="RaLP"
+displayURL="https://modrinth.com/plugin/ralp/"
+authors="Hantu, platonicetornado"
+description='''RaLP - a registration/login authorization plugin for Minecraft servers. Original Forge 1.20.1 jar was decompiled with CFR and ported to NeoForge 1.21.1.'''
