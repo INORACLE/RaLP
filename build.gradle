@@ -1,24 +1,22 @@
 plugins {
-    id 'java-library'
-    id 'net.neoforged.moddev' version '2.0.146'
+    id 'fabric-loom' version '1.13.6'
 }
 
-group = 'ru.hantu'
-version = '0.0.1'
+version = project.mod_version
+group = project.maven_group
 
 base {
-    archivesName = 'RaLP-NeoForge-1.21.1'
+    archivesName = project.archives_base_name
 }
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+    withSourcesJar()
 }
 
-neoForge {
-    version = '21.1.251'
-
+loom {
     runs {
         client {
             client()
@@ -27,16 +25,29 @@ neoForge {
             server()
         }
     }
+}
 
-    mods {
-        ralp {
-            sourceSet(sourceSets.main)
-        }
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Nested inside the mod jar, so server admins do not have to install it separately
+    include(modImplementation("me.lucko:fabric-permissions-api:${project.permissions_api_version}"))
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 21
 }
 
 jar {

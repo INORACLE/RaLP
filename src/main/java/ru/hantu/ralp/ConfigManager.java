@@ -7,9 +7,9 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import net.fabricmc.loader.api.FabricLoader;
 
 public class ConfigManager {
     public static final List<String> SUPPORTED_LANGUAGES = Arrays.asList("en", "ru", "de", "es", "fr", "pt", "tr", "it", "ko", "ja", "zh", "pl");
@@ -17,7 +17,7 @@ public class ConfigManager {
     public static int blockTimeSeconds = 300;
     public static int minPasswordLength = 4;
     public static String language = "en";
-    private static final Path CONFIG_FILE = Paths.get("config", "ralp", "config.json");
+    private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("ralp").resolve("config.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static void init() {

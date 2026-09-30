@@ -1,0 +1,33 @@
+{
+    "schemaVersion": 1,
+    "id": "ralp",
+    "version": "${version}",
+    "name": "RaLP",
+    "description": "RaLP - a registration/login authorization plugin for Minecraft servers. Original Forge 1.20.1 jar was decompiled with CFR and ported to NeoForge 1.21.1, then to Fabric 1.21.1.",
+    "authors": [
+        "Hantu",
+        "platonicetornado"
+    ],
+    "contact": {
+        "homepage": "https://modrinth.com/plugin/ralp/",
+        "sources": "https://github.com/INORACLE/RaLP",
+        "issues": "https://github.com/INORACLE/RaLP/issues"
+    },
+    "license": "GPL-3.0",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "ru.hantu.ralp.Main"
+        ]
+    },
+    "mixins": [
+        "ralp.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=0.15.0",
+        "minecraft": "~1.21.1",
+        "java": ">=21",
+        "fabric-api": "*",
+        "fabric-permissions-api-v0": "*"
+    }
+}

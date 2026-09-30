@@ -4,57 +4,58 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.GameType;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.world.GameMode;
 
 public class CommandRegister {
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
-            Commands.literal("register")
-                .then(Commands.argument("password", StringArgumentType.word())
-                    .then(Commands.argument("confirm", StringArgumentType.word())
+            CommandManager.literal("register")
+                .requires(src -> Perms.canUse(src, Perms.REGISTER))
+                .then(CommandManager.argument("password", StringArgumentType.word())
+                    .then(CommandManager.argument("confirm", StringArgumentType.word())
                         .executes(CommandRegister::execute)))
         );
     }
 
-    private static int execute(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        CommandSourceStack source = ctx.getSource();
-        if (!source.isPlayer()) {
-            source.sendFailure(Messages.get("errors.player-only"));
+    private static int execute(CommandContext<ServerCommandSource> ctx) throws CommandSyntaxException {
+        ServerCommandSource source = ctx.getSource();
+        if (source.getPlayer() == null) {
+            source.sendError(Messages.get("errors.player-only"));
             return 0;
         }
-        ServerPlayer player = source.getPlayerOrException();
-        player.sendSystemMessage(Component.literal("\u00a7b[DEBUG] Register executed"));
+        ServerPlayerEntity player = source.getPlayerOrThrow();
+        player.sendMessage(Text.literal("\u00a7b[DEBUG] Register executed"), false);
         String pass1 = StringArgumentType.getString(ctx, "password");
         String pass2 = StringArgumentType.getString(ctx, "confirm");
         if (!pass1.equals(pass2)) {
-            player.sendSystemMessage(Messages.get("register.passwords-not-match"));
+            player.sendMessage(Messages.get("register.passwords-not-match"), false);
             return 0;
         }
         if (pass1.length() < ConfigManager.minPasswordLength) {
-            player.sendSystemMessage(Messages.get("register.too-short"));
+            player.sendMessage(Messages.get("register.too-short"), false);
             return 0;
         }
-        if (PlayerDataStorage.isRegistered(player.getUUID())) {
-            player.sendSystemMessage(Messages.get("register.already"));
+        if (PlayerDataStorage.isRegistered(player.getUuid())) {
+            player.sendMessage(Messages.get("register.already"), false);
             return 0;
         }
         String hash;
         try {
             hash = PasswordManager.hash(pass1);
         } catch (Exception e) {
-            player.sendSystemMessage(Component.literal("\u00a7c[ERROR] Password hashing failed!"));
+            player.sendMessage(Text.literal("\u00a7c[ERROR] Password hashing failed!"), false);
             e.printStackTrace();
             return 0;
         }
-        player.sendSystemMessage(Component.literal("\u00a7b[DEBUG] Register executed 2"));
+        player.sendMessage(Text.literal("\u00a7b[DEBUG] Register executed 2"), false);
         PlayerDataStorage.register(player, hash);
         AuthManager.setAuthenticated(player, true);
-        player.setGameMode(GameType.SURVIVAL);
-        player.sendSystemMessage(Messages.get("register.success"));
+        player.changeGameMode(GameMode.SURVIVAL);
+        player.sendMessage(Messages.get("register.success"), false);
         return 1;
     }
 }

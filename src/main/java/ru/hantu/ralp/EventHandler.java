@@ -1,79 +1,52 @@
 package ru.hantu.ralp;
 
-import com.mojang.brigadier.context.ParsedCommandNode;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.CommandEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.GameMode;
 
 public class EventHandler {
-    private static final Map<UUID, Vec3> spawnPositions = new HashMap<>();
+    private static final Map<UUID, Vec3d> spawnPositions = new HashMap<>();
 
-    @SubscribeEvent
-    public void onJoin(PlayerEvent.PlayerLoggedInEvent event) {
-        Player player = event.getEntity();
-        if (!(player instanceof ServerPlayer)) {
-            return;
-        }
-        ServerPlayer serverPlayer = (ServerPlayer) player;
-        AuthManager.setAuthenticated(serverPlayer, false);
-        serverPlayer.setGameMode(GameType.SPECTATOR);
-        spawnPositions.put(serverPlayer.getUUID(), serverPlayer.position());
-        if (PlayerDataStorage.isRegistered(serverPlayer.getUUID())) {
-            serverPlayer.sendSystemMessage(Messages.get("login.usage"));
+    public static void register() {
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> onJoin(handler.getPlayer()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> onDisconnect(handler.getPlayer()));
+        ServerTickEvents.END_SERVER_TICK.register(EventHandler::onPlayerTick);
+    }
+
+    private static void onJoin(ServerPlayerEntity player) {
+        AuthManager.setAuthenticated(player, false);
+        player.changeGameMode(GameMode.SPECTATOR);
+        spawnPositions.put(player.getUuid(), player.getPos());
+        if (PlayerDataStorage.isRegistered(player.getUuid())) {
+            player.sendMessage(Messages.get("login.usage"), false);
         } else {
-            serverPlayer.sendSystemMessage(Messages.get("register.usage"));
+            player.sendMessage(Messages.get("register.usage"), false);
         }
     }
 
-    @SubscribeEvent
-    public void onPlayerTick(PlayerTickEvent.Pre event) {
-        Player player = event.getEntity();
-        if (!(player instanceof ServerPlayer)) {
-            return;
-        }
-        ServerPlayer serverPlayer = (ServerPlayer) player;
-        if (AuthManager.isAuthenticated(serverPlayer)) {
-            return;
-        }
-        Vec3 spawn = spawnPositions.get(serverPlayer.getUUID());
-        if (spawn == null) {
-            return;
-        }
-        if (serverPlayer.getX() != spawn.x || serverPlayer.getY() != spawn.y || serverPlayer.getZ() != spawn.z) {
-            serverPlayer.teleportTo(serverPlayer.serverLevel(), spawn.x, spawn.y, spawn.z, serverPlayer.getYRot(), serverPlayer.getXRot());
-        }
+    private static void onDisconnect(ServerPlayerEntity player) {
+        spawnPositions.remove(player.getUuid());
+        AuthManager.clear(player);
     }
 
-    @SubscribeEvent
-    public void onCommand(CommandEvent event) {
-        CommandSourceStack source = event.getParseResults().getContext().getSource();
-        if (!(source.getEntity() instanceof ServerPlayer player)) {
-            return;
+    private static void onPlayerTick(MinecraftServer server) {
+        for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+            if (AuthManager.isAuthenticated(player)) {
+                continue;
+            }
+            Vec3d spawn = spawnPositions.get(player.getUuid());
+            if (spawn == null) {
+                continue;
+            }
+            if (player.getX() != spawn.x || player.getY() != spawn.y || player.getZ() != spawn.z) {
+                player.teleport(player.getServerWorld(), spawn.x, spawn.y, spawn.z, player.getYaw(), player.getPitch());
+            }
         }
-        if (AuthManager.isAuthenticated(player)) {
-            return;
-        }
-        List<ParsedCommandNode<CommandSourceStack>> nodes = event.getParseResults().getContext().getNodes();
-        if (nodes.isEmpty()) {
-            event.setCanceled(true);
-            player.sendSystemMessage(Messages.get("errors.not-logged-in"));
-            return;
-        }
-        String commandName = nodes.get(0).getNode().getName();
-        if ("login".equals(commandName) || "register".equals(commandName) || "changepassword".equals(commandName) || "help".equals(commandName)) {
-            return;
-        }
-        event.setCanceled(true);
-        player.sendSystemMessage(Messages.get("errors.not-logged-in"));
     }
 }

@@ -3,36 +3,36 @@ package ru.hantu.ralp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 public class AuthManager {
     private static final Map<UUID, Boolean> authenticated = new HashMap<>();
     private static final Map<UUID, Integer> attempts = new HashMap<>();
     private static final Map<UUID, Long> blockedUntil = new HashMap<>();
 
-    public static boolean isAuthenticated(ServerPlayer player) {
-        return authenticated.getOrDefault(player.getUUID(), false);
+    public static boolean isAuthenticated(ServerPlayerEntity player) {
+        return authenticated.getOrDefault(player.getUuid(), false);
     }
 
-    public static void setAuthenticated(ServerPlayer player, boolean auth) {
-        authenticated.put(player.getUUID(), auth);
+    public static void setAuthenticated(ServerPlayerEntity player, boolean auth) {
+        authenticated.put(player.getUuid(), auth);
     }
 
-    public static boolean isBlocked(ServerPlayer player) {
-        Long until = blockedUntil.get(player.getUUID());
+    public static boolean isBlocked(ServerPlayerEntity player) {
+        Long until = blockedUntil.get(player.getUuid());
         if (until != null && System.currentTimeMillis() < until) {
             return true;
         }
-        blockedUntil.remove(player.getUUID());
-        attempts.remove(player.getUUID());
+        blockedUntil.remove(player.getUuid());
+        attempts.remove(player.getUuid());
         return false;
     }
 
-    public static void recordFailed(ServerPlayer player) {
+    public static void recordFailed(ServerPlayerEntity player) {
         if (isBlocked(player)) {
             return;
         }
-        UUID uuid = player.getUUID();
+        UUID uuid = player.getUuid();
         int count = attempts.getOrDefault(uuid, 0) + 1;
         attempts.put(uuid, count);
         if (count >= ConfigManager.maxLoginAttempts) {
@@ -41,13 +41,13 @@ public class AuthManager {
         }
     }
 
-    public static long getRemainingSeconds(ServerPlayer player) {
-        Long until = blockedUntil.get(player.getUUID());
+    public static long getRemainingSeconds(ServerPlayerEntity player) {
+        Long until = blockedUntil.get(player.getUuid());
         return until != null ? Math.max(0L, (until - System.currentTimeMillis()) / 1000L) : 0L;
     }
 
-    public static void clear(ServerPlayer player) {
-        attempts.remove(player.getUUID());
-        blockedUntil.remove(player.getUUID());
+    public static void clear(ServerPlayerEntity player) {
+        attempts.remove(player.getUuid());
+        blockedUntil.remove(player.getUuid());
     }
 }

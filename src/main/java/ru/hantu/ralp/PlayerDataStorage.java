@@ -9,14 +9,14 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.server.level.ServerPlayer;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 public class PlayerDataStorage {
-    private static final Path CONFIG_DIR = Paths.get("config", "ralp");
+    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("ralp");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type MAP_TYPE = new TypeToken<Map<UUID, PlayerData>>() {}.getType();
     private static Map<UUID, PlayerData> data = new HashMap<>();
@@ -57,8 +57,8 @@ public class PlayerDataStorage {
         return data.containsKey(uuid);
     }
 
-    public static void register(ServerPlayer player, String hash) {
-        data.put(player.getUUID(), new PlayerData(hash, player.getGameProfile().getName()));
+    public static void register(ServerPlayerEntity player, String hash) {
+        data.put(player.getUuid(), new PlayerData(hash, player.getGameProfile().getName()));
         save();
     }
 
@@ -67,8 +67,8 @@ public class PlayerDataStorage {
         return d != null ? d.passwordHash : null;
     }
 
-    public static void updatePassword(ServerPlayer player, String newHash) {
-        PlayerData d = data.get(player.getUUID());
+    public static void updatePassword(ServerPlayerEntity player, String newHash) {
+        PlayerData d = data.get(player.getUuid());
         if (d != null) {
             d.passwordHash = newHash;
             save();

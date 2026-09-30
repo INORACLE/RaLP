@@ -4,42 +4,42 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.UUID;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
 public class CommandUnregister {
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
-            Commands.literal("unreg")
-                .requires(src -> src.hasPermission(4))
-                .then(Commands.argument("player", EntityArgument.player())
+            CommandManager.literal("unreg")
+                .requires(src -> src.hasPermissionLevel(4))
+                .then(CommandManager.argument("player", EntityArgumentType.player())
                     .executes(CommandUnregister::execute))
         );
     }
 
-    private static int execute(CommandContext<CommandSourceStack> ctx) {
-        ServerPlayer target;
+    private static int execute(CommandContext<ServerCommandSource> ctx) {
+        ServerPlayerEntity target;
         try {
-            target = EntityArgument.getPlayer(ctx, "player");
+            target = EntityArgumentType.getPlayer(ctx, "player");
         } catch (CommandSyntaxException e) {
-            ctx.getSource().sendFailure(Component.literal("\u00a7cPlayer not found!"));
+            ctx.getSource().sendError(Text.literal("\u00a7cPlayer not found!"));
             return 0;
         }
-        UUID uuid = target.getUUID();
+        UUID uuid = target.getUuid();
         if (!PlayerDataStorage.isRegistered(uuid)) {
-            ctx.getSource().sendFailure(Messages.get("unreg.not-registered"));
+            ctx.getSource().sendError(Messages.get("unreg.not-registered"));
             return 0;
         }
         PlayerDataStorage.unregister(uuid);
         AuthManager.setAuthenticated(target, false);
         if (target.isAlive()) {
-            target.sendSystemMessage(Component.literal("\u00a7cYour account has been unregistered by admin."));
+            target.sendMessage(Text.literal("\u00a7cYour account has been unregistered by admin."), false);
         }
         String msg = Messages.get("unreg.success").getString().replace("{player}", target.getDisplayName().getString());
-        ctx.getSource().sendSuccess(() -> Component.literal(msg), true);
+        ctx.getSource().sendFeedback(() -> Text.literal(msg), true);
         return 1;
     }
 }

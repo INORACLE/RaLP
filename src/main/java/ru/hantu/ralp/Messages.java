@@ -1,11 +1,11 @@
 package ru.hantu.ralp;
 
-import net.minecraft.network.chat.Component;
+import net.minecraft.text.Text;
 
 public class Messages {
-    public static Component get(String key) {
+    public static Text get(String key) {
         String lang = ConfigManager.language;
-        return Component.literal(switch (lang) {
+        return Text.literal(switch (lang) {
             case "ru" -> getRu(key);
             case "de" -> getDe(key);
             case "es" -> getEs(key);
