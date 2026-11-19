@@ -26,11 +26,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: Build Fabric
         run: ./gradlew build
 
-      - name: Upload build artifact
+      - name: Build NeoForge
+        run: ./gradlew -p neoforge build
+
+      - name: Upload Fabric artifact
         uses: actions/upload-artifact@v4
         with:
           name: RaLP-Fabric-1.21.1
           path: build/libs/*.jar
+
+      - name: Upload NeoForge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaLP-NeoForge-1.21.1
+          path: neoforge/build/libs/*.jar

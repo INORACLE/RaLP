@@ -5,22 +5,47 @@ Spectator mode and receive a `/register` (new accounts) or `/login` (existing ac
 commands are blocked until the player authenticates.
 
 This repository contains the source code decompiled (CFR) from the original `RaLP-Forge-1.20-0.0.1.jar`
-and ported from **Forge 1.20.1** to **NeoForge 1.21.1**, then from **NeoForge 1.21.1** to **Fabric 1.21.1**.
+and ported from **Forge 1.20.1** to **NeoForge 1.21.1** (`neoforge/`, Mojang mappings) and to
+**Fabric 1.21.1** (repository root, Yarn mappings). Both loaders are maintained side by side.
 
 ## Downloads / build
 
-The Fabric 1.21.1 build is produced automatically by [GitHub Actions](.github/workflows/build.yml)
-on every push to `main`. Grab the artifact from the latest run, or build it yourself:
+Both loader builds are produced automatically by [GitHub Actions](.github/workflows/build.yml) on every
+push to `main`. Grab the artifacts from the latest run, or build them yourself (Java 21 required):
+
+| Loader | Target | Gradle project | Output |
+| --- | --- | --- | --- |
+| NeoForge | 21.1.251 (MC 1.21.1) | `neoforge/` | `neoforge/build/libs/RaLP-NeoForge-1.21.1-<version>.jar` |
+| Fabric | 1.21.1 | repository root | `build/libs/RaLP-Fabric-1.21.1-<version>.jar` |
 
 ```
-./gradlew build
+./gradlew build              # Fabric
+./gradlew -p neoforge build  # NeoForge
 ```
-
-The resulting jar is written to `build/libs/`. **Java 21** is required.
 
 Runtime requirements: Fabric Loader `0.16.14+`, Fabric API `0.116.17+1.21.1`. The
 [Fabric Permissions API](https://github.com/FabricMC/fabric-permissions-api) (`0.3.1`) is bundled
 inside the jar, so it does not need to be installed separately.
+
+## Fixed in 0.0.3 - players stuck in mid-air after login
+
+**Symptom:** after joining a NeoForge 1.21.1 server and running `/login` or `/register`, a player could only
+move horizontally. They hovered in mid-air and could neither descend nor jump.
+
+**Root cause:** unauthenticated players are held in `SPECTATOR`, which grants flight. NeoForge deliberately
+preserves `abilities.flying` when the game mode changes (`ServerPlayerGameMode#setGameModeForPlayer`:
+`flying = wasFlying || newFlying`), unlike vanilla. Switching straight back to survival therefore emitted
+one or more ability packets with `flying = true` while `mayfly = false`. The client enters a flying state it
+is not permitted to leave, so it keeps hovering and never touches the ground (see also
+[NeoForge #1454](https://github.com/neoforged/NeoForge/issues/1454)).
+
+**Fix:** `AuthSupport#completeLogin` clears the flight flags *before* the mode change (so NeoForge has
+nothing to carry over), re-asserts a clean survival ability set afterwards, forces an ability sync, and
+resets velocity and fall distance. Verified on a local NeoForge 21.1.251 server with packet capture: the
+old jar emitted `flying=1 mayfly=0` right after authentication, the fixed jar goes straight to
+`flying=0 mayfly=0`, and jump tests return to the ground normally. The same hardening is applied to the
+Fabric build.
+
 
 ## Commands
 

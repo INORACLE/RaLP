@@ -8,7 +8,6 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.world.GameMode;
 
 public class CommandRegister {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
@@ -28,7 +27,6 @@ public class CommandRegister {
             return 0;
         }
         ServerPlayerEntity player = source.getPlayerOrThrow();
-        player.sendMessage(Text.literal("\u00a7b[DEBUG] Register executed"), false);
         String pass1 = StringArgumentType.getString(ctx, "password");
         String pass2 = StringArgumentType.getString(ctx, "confirm");
         if (!pass1.equals(pass2)) {
@@ -51,10 +49,9 @@ public class CommandRegister {
             e.printStackTrace();
             return 0;
         }
-        player.sendMessage(Text.literal("\u00a7b[DEBUG] Register executed 2"), false);
         PlayerDataStorage.register(player, hash);
         AuthManager.setAuthenticated(player, true);
-        player.changeGameMode(GameMode.SURVIVAL);
+        AuthSupport.completeLogin(player);
         player.sendMessage(Messages.get("register.success"), false);
         return 1;
     }

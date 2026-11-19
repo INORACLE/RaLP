@@ -8,7 +8,6 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.world.GameMode;
 
 public class CommandLogin {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
@@ -46,7 +45,7 @@ public class CommandLogin {
         if (PasswordManager.verify(password, hash)) {
             AuthManager.setAuthenticated(player, true);
             AuthManager.clear(player);
-            player.changeGameMode(GameMode.SURVIVAL);
+            AuthSupport.completeLogin(player);
             player.sendMessage(Messages.get("login.success"), false);
             return 1;
         }

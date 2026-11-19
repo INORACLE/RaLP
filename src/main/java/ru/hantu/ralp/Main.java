@@ -10,7 +10,6 @@ public class Main implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        DebugProbe.install();
         PlayerDataStorage.init();
         ConfigManager.init();
 
